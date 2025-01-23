@@ -650,118 +650,154 @@
         function showUpdateStatus(message) {
             updateStatus.textContent = message;
             updateStatus.style.display = 'block';
+            
+            // 如果是错误消息，延长显示时间
+            const isError = message.includes('失败') || message.includes('错误');
             setTimeout(() => {
                 updateStatus.style.display = 'none';
-            }, 3000);
+            }, isError ? 5000 : 3000);
         }
 
         function connectWebSocket() {
-            // 根据当前网页URL自动判断WebSocket地址
+            // 如果网络离线，不尝试连接
+            if (!navigator.onLine) {
+                showUpdateStatus('当前处于离线模式');
+                return;
+            }
+
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws`;
             
-            ws = new WebSocket(wsUrl);
+            try {
+                ws = new WebSocket(wsUrl);
 
-            ws.onopen = () => {
-                console.log('WebSocket连接已建立');
-                reconnectAttempts = 0;
-                showUpdateStatus('已连接到服务器');
-            };
+                ws.onopen = () => {
+                    console.log('WebSocket连接已建立');
+                    reconnectAttempts = 0;
+                    showUpdateStatus('已连接到服务器');
+                };
 
-            ws.onmessage = (event) => {
-                try {
-                    const newData = JSON.parse(event.data);
-                    // 更新本地数据
-                    Object.assign(playerData, newData);
-                    localStorage.setItem('playerData', JSON.stringify(playerData));
-                    
-                    // 刷新显示
-                    const activeFilter = document.querySelector('.filter-btn.active').dataset.island;
-                    displayPlayers(activeFilter);
-                    
-                    showUpdateStatus('数据已更新');
-                } catch (error) {
-                    console.error('数据更新失败:', error);
-                    showUpdateStatus('数据更新失败');
-                }
-            };
+                ws.onmessage = (event) => {
+                    try {
+                        const newData = JSON.parse(event.data);
+                        updatePlayerData(newData);
+                    } catch (error) {
+                        console.error('数据更新失败:', error);
+                    }
+                };
 
-            ws.onclose = () => {
-                console.log('WebSocket连接已断开');
-                // 尝试重连
-                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                    reconnectAttempts++;
-                    setTimeout(() => {
-                        showUpdateStatus('正在重新连接...');
-                        connectWebSocket();
-                    }, 3000 * reconnectAttempts); // 递增重连延迟
-                } else {
-                    showUpdateStatus('连接失败，请刷新页面');
-                }
-            };
+                ws.onclose = () => {
+                    if (!navigator.onLine) {
+                        showUpdateStatus('网络已断开，使用本地数据');
+                        return;
+                    }
 
-            ws.onerror = (error) => {
-                console.error('WebSocket错误:', error);
-                showUpdateStatus('连接出错');
-            };
+                    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                        reconnectAttempts++;
+                        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+                        setTimeout(() => {
+                            showUpdateStatus('正在重新连接...');
+                            connectWebSocket();
+                        }, delay);
+                    } else {
+                        showUpdateStatus('连接失败，使用本地数据');
+                    }
+                };
+
+                ws.onerror = () => {
+                    showUpdateStatus('连接出错，使用本地数据');
+                };
+            } catch (error) {
+                console.error('WebSocket连接失败:', error);
+                showUpdateStatus('连接失败，使用本地数据');
+            }
         }
 
-        // 添加定期检查更新的功能
+        // 添加数据更新函数
+        function updatePlayerData(newData) {
+            try {
+                Object.assign(playerData, newData);
+                localStorage.setItem('playerData', JSON.stringify(playerData));
+                localStorage.setItem('lastUpdateTime', Date.now());
+                
+                const activeFilter = document.querySelector('.filter-btn.active').dataset.island;
+                displayPlayers(activeFilter);
+                
+                showUpdateStatus('数据已更新');
+            } catch (error) {
+                console.error('数据更新失败:', error);
+                showUpdateStatus('更新失败，使用本地数据');
+            }
+        }
+
+        // 修改检查更新函数
         function checkForUpdates() {
             if (!navigator.onLine) {
-                showUpdateStatus('离线模式');
+                const lastUpdate = localStorage.getItem('lastUpdateTime');
+                const timeAgo = lastUpdate ? Math.floor((Date.now() - lastUpdate) / 60000) : null;
+                
+                showUpdateStatus(
+                    timeAgo 
+                        ? `离线模式（${timeAgo}分钟前更新）` 
+                        : '离线模式'
+                );
                 return;
             }
 
             fetch('/api/version')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error('网络请求失败');
+                    return response.json();
+                })
                 .then(data => {
                     const currentVersion = localStorage.getItem('dataVersion');
                     if (data.version !== currentVersion) {
-                        showUpdateStatus('发现新数据，正在更新...');
-                        // 获取新数据
                         return fetch('/api/data');
                     }
                 })
                 .then(response => response?.json())
                 .then(newData => {
                     if (newData) {
-                        Object.assign(playerData, newData.data);
-                        localStorage.setItem('playerData', JSON.stringify(playerData));
+                        updatePlayerData(newData.data);
                         localStorage.setItem('dataVersion', newData.version);
-                        
-                        // 刷新显示
-                        const activeFilter = document.querySelector('.filter-btn.active').dataset.island;
-                        displayPlayers(activeFilter);
-                        
-                        showUpdateStatus('数据已更新');
                     }
                 })
                 .catch(error => {
                     console.error('更新检查失败:', error);
+                    showUpdateStatus('更新失败，使用本地数据');
                 });
         }
 
-        // 页面加载时连接WebSocket
-        connectWebSocket();
-
-        // 定期检查更新（每5分钟）
-        setInterval(checkForUpdates, 5 * 60 * 1000);
-
         // 添加网络状态监听
         window.addEventListener('online', () => {
-            showUpdateStatus('网络已连接');
+            showUpdateStatus('网络已连接，正在同步...');
             connectWebSocket();
             checkForUpdates();
         });
 
         window.addEventListener('offline', () => {
-            showUpdateStatus('已切换到离线模式');
+            showUpdateStatus('网络已断开，使用本地数据');
+            if (ws) ws.close();
         });
+
+        // 页面加载时初始化
+        if (navigator.onLine) {
+            connectWebSocket();
+            checkForUpdates();
+        } else {
+            showUpdateStatus('离线模式');
+        }
+
+        // 定期检查更新（网络正常时）
+        setInterval(() => {
+            if (navigator.onLine) {
+                checkForUpdates();
+            }
+        }, 5 * 60 * 1000);
 
         // 页面激活时检查更新
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
+            if (document.visibilityState === 'visible' && navigator.onLine) {
                 checkForUpdates();
             }
         });
