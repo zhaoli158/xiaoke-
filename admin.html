@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light-mode">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首领管理系统 - 小可海贼团</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f7;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1d1d1f;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        .password-input {
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .login-btn {
+            padding: 12px;
+            font-size: 16px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .login-btn:hover {
+            opacity: 0.9;
+        }
+        .error-message {
+            color: #ff3b30;
+            text-align: center;
+            display: none;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007aff;
+            text-decoration: none;
+        }
+        
+        /* 深色模式样式 */
+        html.dark-mode {
+            background-color: #000;
+            color: #fff;
+        }
+        html.dark-mode .container {
+            background: #2c2c2e;
+        }
+        html.dark-mode h1 {
+            color: #fff;
+        }
+        html.dark-mode .password-input {
+            background: #1c1c1e;
+            border-color: #3a3a3c;
+            color: #fff;
+        }
+        html.dark-mode .back-link {
+            color: #0a84ff;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>首领管理系统</h1>
+        <form class="login-form" id="loginForm">
+            <input type="password" 
+                   class="password-input" 
+                   id="passwordInput"
+                   placeholder="请输入管理密码"
+                   autocomplete="off">
+            <div class="error-message" id="errorMessage">密码错误，请重试</div>
+            <button type="submit" class="login-btn">登录</button>
+        </form>
+        <a href="小可查询.html" class="back-link">← 返回查询系统</a>
+    </div>
+
+    <script>
+        // 登录处理
+        const loginForm = document.getElementById('loginForm');
+        const passwordInput = document.getElementById('passwordInput');
+        const errorMessage = document.getElementById('errorMessage');
+
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (passwordInput.value === '654321') {
+                // 登录成功，跳转到管理页面
+                window.location.href = 'manage.html';
+            } else {
+                // 显示错误信息
+                errorMessage.style.display = 'block';
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        });
+
+        // 继承深色模式设置
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.className = savedTheme;
+        }
+    </script>
+</body>
+</html> 

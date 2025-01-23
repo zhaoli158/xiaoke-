@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light-mode">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理系统 - 小可海贼团</title>
+    <style>
+        /* 复用之前的基础样式 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f7;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1d1d1f;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        /* 管理界面特定样式 */
+        .edit-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .input-field {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .add-btn {
+            background: #007aff;
+            color: white;
+        }
+        .update-btn {
+            background: #30d158;
+            color: white;
+        }
+        .delete-btn {
+            background: #ff3b30;
+            color: white;
+        }
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(48, 209, 88, 0.9);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+        }
+        .member-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .member-card {
+            padding: 10px;
+            background: #f5f5f7;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .member-card:hover {
+            background: #e5e5ea;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007aff;
+            text-decoration: none;
+        }
+
+        /* 深色模式样式 */
+        html.dark-mode {
+            background-color: #000;
+            color: #fff;
+        }
+        html.dark-mode .container {
+            background: #2c2c2e;
+        }
+        html.dark-mode h1 {
+            color: #fff;
+        }
+        html.dark-mode .input-field {
+            background: #1c1c1e;
+            border-color: #3a3a3c;
+            color: #fff;
+        }
+        html.dark-mode .member-card {
+            background: #1c1c1e;
+        }
+        html.dark-mode .member-card:hover {
+            background: #2c2c2e;
+        }
+        html.dark-mode .back-link {
+            color: #0a84ff;
+        }
+        html.dark-mode .success-message {
+            background: rgba(48, 209, 88, 0.8);
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+            .input-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-message" id="successMessage">修改成功！</div>
+    <div class="container">
+        <h1>成员管理</h1>
+        <div class="edit-form">
+            <div class="input-group">
+                <input type="text" class="input-field" id="nameInput" placeholder="成员名字">
+                <select class="input-field" id="islandSelect">
+                    <option value="一岛">一岛</option>
+                    <option value="二岛">二岛</option>
+                    <option value="三岛">三岛</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <button class="action-btn add-btn" id="addBtn">添加成员</button>
+                <button class="action-btn update-btn" id="updateBtn">修改</button>
+                <button class="action-btn delete-btn" id="deleteBtn">删除成员</button>
+            </div>
+        </div>
+        <div class="member-list" id="memberList"></div>
+        <a href="小可查询.html" class="back-link">← 返回查询系统</a>
+    </div>
+
+    <script>
+        // 从localStorage加载数据
+        let playerData = JSON.parse(localStorage.getItem('playerData')) || {};
+
+        const nameInput = document.getElementById('nameInput');
+        const islandSelect = document.getElementById('islandSelect');
+        const addBtn = document.getElementById('addBtn');
+        const updateBtn = document.getElementById('updateBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const memberList = document.getElementById('memberList');
+        const successMessage = document.getElementById('successMessage');
+        let selectedMember = null;
+
+        // 显示成员列表
+        function displayMembers() {
+            memberList.innerHTML = '';
+            Object.entries(playerData).forEach(([name, island]) => {
+                const card = document.createElement('div');
+                card.className = 'member-card';
+                card.innerHTML = `
+                    <div>${name}</div>
+                    <div style="color: #007aff;">${island}</div>
+                `;
+                card.addEventListener('click', () => {
+                    nameInput.value = name;
+                    islandSelect.value = island;
+                    selectedMember = name;
+                });
+                memberList.appendChild(card);
+            });
+        }
+
+        // 显示成功消息
+        function showSuccessMessage() {
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+                window.location.href = '小可查询.html';
+            }, 1500);
+        }
+
+        // 添加成员
+        addBtn.addEventListener('click', () => {
+            const name = nameInput.value.trim();
+            const island = islandSelect.value;
+            
+            if (!name) {
+                alert('请输入成员名字');
+                return;
+            }
+            
+            if (playerData[name]) {
+                alert('该成员已存在，请使用修改功能');
+                return;
+            }
+            
+            playerData[name] = island;
+            localStorage.setItem('playerData', JSON.stringify(playerData));
+            displayMembers();
+            nameInput.value = '';
+            selectedMember = null;
+        });
+
+        // 修改成员
+        updateBtn.addEventListener('click', () => {
+            const newName = nameInput.value.trim();
+            const newIsland = islandSelect.value;
+            
+            if (!selectedMember) {
+                alert('请先选择要修改的成员');
+                return;
+            }
+            
+            if (!newName) {
+                alert('请输入成员名字');
+                return;
+            }
+            
+            if (newName !== selectedMember) {
+                alert('不能修改成员名字，只能修改所在岛屿');
+                nameInput.value = selectedMember;
+                return;
+            }
+            
+            playerData[selectedMember] = newIsland;
+            localStorage.setItem('playerData', JSON.stringify(playerData));
+            showSuccessMessage();
+        });
+
+        // 删除成员
+        deleteBtn.addEventListener('click', () => {
+            const name = nameInput.value.trim();
+            
+            if (!name || !playerData[name]) {
+                alert('请选择要删除的成员');
+                return;
+            }
+            
+            if (confirm(`确定要删除成员 ${name} 吗？`)) {
+                delete playerData[name];
+                localStorage.setItem('playerData', JSON.stringify(playerData));
+                displayMembers();
+                nameInput.value = '';
+                selectedMember = null;
+            }
+        });
+
+        // 继承深色模式设置
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.className = savedTheme;
+        }
+
+        // 初始显示成员列表
+        displayMembers();
+    </script>
+</body>
+</html> 

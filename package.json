@@ -1,0 +1,23 @@
+{
+  "name": "xiaoke-query",
+  "version": "1.0.0",
+  "description": "小可海贼团查询系统",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.xiaoke.query",
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "devDependencies": {
+    "electron": "^latest",
+    "electron-builder": "^latest"
+  }
+} 

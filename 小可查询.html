@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light-mode">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#007aff">
+    <link rel="manifest" href="manifest.json">
+    <title>小可海贼团</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f7;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1d1d1f;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        .result {
+            padding: 15px;
+            border-radius: 8px;
+            background: #f5f5f7;
+            margin-top: 20px;
+            font-size: 16px;
+            display: none;
+        }
+        .error {
+            color: #ff3b30;
+        }
+        .success {
+            color: #007aff;
+        }
+        
+        /* 添加深色模式样式 */
+        .theme-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        /* 深色模式样式 */
+        html.dark-mode {
+            background-color: #000;
+            color: #fff;
+        }
+
+        html.dark-mode body {
+            background-color: #1c1c1e;
+        }
+
+        html.dark-mode .container {
+            background: #2c2c2e;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        html.dark-mode h1 {
+            color: #fff;
+        }
+
+        html.dark-mode .search-box {
+            background: #1c1c1e;
+            border-color: #3a3a3c;
+            color: #fff;
+        }
+
+        html.dark-mode .result {
+            background: #1c1c1e;
+        }
+
+        html.dark-mode .success {
+            color: #0a84ff;
+        }
+
+        html.dark-mode .error {
+            color: #ff453a;
+        }
+
+        html.dark-mode .theme-switch {
+            color: #fff;
+        }
+
+        html.dark-mode .theme-switch:hover {
+            background-color: #3a3a3c;
+        }
+
+        /* 亮色模式下的按钮样式 */
+        .theme-switch:hover {
+            background-color: #f2f2f7;
+        }
+
+        /* 添加首领登录按钮样式 */
+        .admin-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            color: #007aff;
+            text-decoration: none;
+        }
+
+        html.dark-mode .admin-link {
+            color: #0a84ff;
+        }
+
+        @media (max-width: 480px) {
+            .admin-link {
+                top: 15px;
+                left: 15px;
+                font-size: 14px;
+            }
+        }
+
+        /* 添加分类筛选相关样式 */
+        .filter-container {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #d2d2d7;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+
+        .player-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .player-card {
+            padding: 10px;
+            border-radius: 8px;
+            background: #f5f5f7;
+            text-align: center;
+        }
+
+        /* 深色模式适配 */
+        html.dark-mode .filter-btn {
+            border-color: #3a3a3c;
+            color: #fff;
+        }
+
+        html.dark-mode .filter-btn.active {
+            background: #0a84ff;
+            border-color: #0a84ff;
+        }
+
+        html.dark-mode .player-card {
+            background: #1c1c1e;
+        }
+
+        /* 修改移动端适配样式 */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+                margin-top: 30px; /* 为主题切换按钮留出空间 */
+            }
+
+            /* 优化筛选按钮在移动端的显示 */
+            .filter-container {
+                justify-content: center;
+                margin-bottom: 15px;
+            }
+
+            .filter-btn {
+                padding: 6px 12px;
+                font-size: 13px;
+                min-width: 60px; /* 确保按钮有最小宽度 */
+            }
+
+            /* 优化玩家卡片在移动端的显示 */
+            .player-list {
+                grid-template-columns: repeat(2, 1fr); /* 移动端显示两列 */
+                gap: 8px;
+            }
+
+            .player-card {
+                padding: 8px;
+                font-size: 14px;
+            }
+
+            /* 优化搜索框在移动端的显示 */
+            .search-box {
+                padding: 10px;
+                font-size: 15px;
+            }
+
+            /* 优化主题切换按钮位置 */
+            .theme-switch {
+                top: 15px;
+                right: 15px;
+                font-size: 20px;
+                padding: 6px;
+            }
+
+            /* 优化结果显示 */
+            .result {
+                padding: 12px;
+                font-size: 14px;
+            }
+        }
+
+        /* 添加触摸设备的交互优化 */
+        @media (hover: none) {
+            .filter-btn:active {
+                opacity: 0.7;
+            }
+
+            .theme-switch:active {
+                opacity: 0.7;
+            }
+
+            .player-card {
+                -webkit-tap-highlight-color: transparent; /* 移除移动端点击高亮 */
+            }
+        }
+
+        /* 优化暗色模式下的文字对比度 */
+        html.dark-mode .player-card {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* PWA 图标样式 */
+        .pwa-icon {
+            width: 512px;
+            height: 512px;
+            position: fixed;
+            top: -1000px; /* 隐藏但保持渲染 */
+            background: #007aff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* 海贼帽 */
+        .hat {
+            position: absolute;
+            width: 256px;
+            height: 130px;
+            top: 150px;
+            background: #FFD700;
+            border-radius: 50% / 100% 100% 0 0;
+            transform: scale(1.2);
+        }
+
+        .hat::after {
+            content: '';
+            position: absolute;
+            width: 160px;
+            height: 65px;
+            top: 35px;
+            left: 48px;
+            background: #FF4444;
+            border-radius: 50% / 100% 100% 0 0;
+        }
+
+        /* 骷髅标志 */
+        .skull {
+            position: absolute;
+            top: 310px;
+            width: 140px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .eyes {
+            display: flex;
+            gap: 40px;
+        }
+
+        .eye {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .smile {
+            width: 80px;
+            height: 40px;
+            border: 12px solid white;
+            border-radius: 0 0 40px 40px;
+            border-top: 0;
+        }
+
+        /* 交叉骨头 */
+        .bones {
+            position: absolute;
+            top: 390px;
+            width: 100px;
+            height: 100px;
+            transform: rotate(45deg);
+        }
+
+        .bone {
+            position: absolute;
+            width: 100px;
+            height: 20px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .bone:last-child {
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- PWA 图标 -->
+    <div class="pwa-icon">
+        <div class="hat"></div>
+        <div class="skull">
+            <div class="eyes">
+                <div class="eye"></div>
+                <div class="eye"></div>
+            </div>
+            <div class="smile"></div>
+        </div>
+        <div class="bones">
+            <div class="bone"></div>
+            <div class="bone"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <a href="admin.html" class="admin-link">首领登录</a>
+        <button class="theme-switch" id="themeSwitch">🌓</button>
+        <h1>小可海贼团</h1>
+        
+        <!-- 添加筛选按钮 -->
+        <div class="filter-container">
+            <button class="filter-btn active" data-island="all">全部</button>
+            <button class="filter-btn" data-island="一岛">一岛</button>
+            <button class="filter-btn" data-island="二岛">二岛</button>
+            <button class="filter-btn" data-island="三岛">三岛</button>
+        </div>
+
+        <input type="text" 
+               class="search-box" 
+               id="searchInput" 
+               placeholder="快速查询，请输入游戏id"
+               autocomplete="off">
+        <div class="result" id="result"></div>
+        
+        <!-- 添加玩家列表容器 -->
+        <div class="player-list" id="playerList"></div>
+    </div>
+
+    <!-- 在 script 标签前添加一个状态提示器 -->
+    <div id="updateStatus" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+        padding: 8px 16px; border-radius: 20px; background: #007aff; color: white; 
+        display: none; z-index: 1000;">
+        正在同步数据...
+    </div>
+
+    <script>
+        // 从localStorage加载数据，如果没有则使用默认数据
+        const defaultPlayerData = {
+            "伤心辞": "一岛",
+            "周防尊4": "一岛",
+            "!9": "一岛",
+            "刘海柱": "一岛",
+            "独倾": "一岛",
+            "余晖": "一岛",
+            "杨如画": "一岛",
+            "花开富贵p": "一岛",
+            "小野u": "一岛",
+            "倾鸣": "一岛",
+            "上仙只有汪": "一岛",
+            "汉中": "二岛",
+            "可与": "二岛",
+            "年愁今夜": "二岛",
+            "恍猫": "二岛",
+            "酷巴亚西": "二岛",
+            "天运子": "二岛",
+            "桃子": "二岛",
+            "旋涡卡卡罗特": "二岛",
+            "zeron": "二岛",
+            "雨露": "二岛",
+            "陈老师": "二岛",
+            "王司徒": "三岛",
+            "会重来么": "三岛",
+            "纯情愚": "三岛",
+            "摸头表示尊重": "三岛",
+            "睡觉的醒醒": "三岛",
+            "Miao": "三岛",
+            "尼美苏利": "三岛",
+            "含光": "三岛",
+            "毕竟话少": "三岛",
+            "花翊子": "三岛",
+            "菠萝吹雪": "三岛"
+        };
+
+        // 从localStorage获取数据，如果没有则使用默认数据
+        const playerData = JSON.parse(localStorage.getItem('playerData')) || defaultPlayerData;
+        
+        // 如果localStorage为空，初始化默认数据
+        if (!localStorage.getItem('playerData')) {
+            localStorage.setItem('playerData', JSON.stringify(defaultPlayerData));
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        const result = document.getElementById('result');
+
+        // 添加筛选功能
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const playerList = document.getElementById('playerList');
+
+        function displayPlayers(filter = 'all') {
+            playerList.innerHTML = '';
+            
+            Object.entries(playerData).forEach(([name, island]) => {
+                if (filter === 'all' || filter === island) {
+                    const playerCard = document.createElement('div');
+                    playerCard.className = 'player-card';
+                    playerCard.innerHTML = `
+                        <div>${name}</div>
+                        <div style="color: #007aff;">${island}</div>
+                    `;
+                    playerList.appendChild(playerCard);
+                }
+            });
+        }
+
+        // 初始显示所有玩家
+        displayPlayers();
+
+        // 筛选按钮点击事件
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 更新按钮状态
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // 显示筛选后的玩家
+                const filter = btn.dataset.island;
+                displayPlayers(filter);
+            });
+        });
+
+        // 修改搜索功能，使其能够搜索成员所在岛
+        searchInput.addEventListener('input', function() {
+            const searchValue = this.value.trim().toLowerCase();
+            result.style.display = 'block';
+            
+            // 当搜索框有内容时隐藏玩家列表，否则显示
+            playerList.style.display = searchValue ? 'none' : 'grid';
+            
+            if (searchValue === '') {
+                result.textContent = '请输入游戏ID';
+                result.className = 'result';
+                return;
+            }
+
+            // 查找匹配的玩家
+            const matchedPlayers = Object.entries(playerData).filter(([name]) => 
+                name.toLowerCase().includes(searchValue)
+            );
+
+            if (matchedPlayers.length > 0) {
+                const resultText = matchedPlayers.map(([name, island]) => 
+                    `${name} 在 ${island}`
+                ).join('\n');
+                result.textContent = resultText;
+                result.className = 'result success';
+            } else {
+                result.textContent = '未找到该玩家，如未写到请去金岛';
+                result.className = 'result error';
+            }
+        });
+
+        // 添加深色模式切换逻辑
+        const themeSwitch = document.getElementById('themeSwitch');
+        const html = document.documentElement;
+        
+        // 检查本地存储中的主题设置
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            html.className = savedTheme;
+        } else {
+            // 检查系统主题偏好
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                html.className = 'dark-mode';
+            }
+        }
+
+        themeSwitch.addEventListener('click', function() {
+            if (html.className === 'dark-mode') {
+                html.className = 'light-mode';
+                localStorage.setItem('theme', 'light-mode');
+            } else {
+                html.className = 'dark-mode';
+                localStorage.setItem('theme', 'dark-mode');
+            }
+        });
+
+        // 监听系统主题变化
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                if (!localStorage.getItem('theme')) {
+                    html.className = e.matches ? 'dark-mode' : 'light-mode';
+                }
+            });
+        }
+
+        // 添加移动端优化代码
+        function initMobileOptimizations() {
+            // 防止iOS设备上的双击缩放
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+
+            // 修复iOS设备上的点击延迟
+            document.addEventListener('touchstart', function() {}, false);
+
+            // 优化移动端搜索体验
+            searchInput.addEventListener('focus', function() {
+                // 滚动到搜索框位置
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+        }
+
+        // 初始化移动端优化
+        initMobileOptimizations();
+
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        // 添加安装提示
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // 可以在这里添加自定义的安装提示UI
+            if (!localStorage.getItem('appInstalled')) {
+                const installBanner = document.createElement('div');
+                installBanner.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #007aff;
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 24px;
+                    cursor: pointer;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                    z-index: 1000;
+                `;
+                installBanner.textContent = '安装应用';
+                
+                installBanner.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            localStorage.setItem('appInstalled', 'true');
+                        }
+                        deferredPrompt = null;
+                    }
+                    installBanner.remove();
+                });
+                
+                document.body.appendChild(installBanner);
+            }
+        });
+
+        // 在 playerData 声明后添加以下代码
+        const updateStatus = document.getElementById('updateStatus');
+        let ws = null;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+
+        function showUpdateStatus(message) {
+            updateStatus.textContent = message;
+            updateStatus.style.display = 'block';
+            setTimeout(() => {
+                updateStatus.style.display = 'none';
+            }, 3000);
+        }
+
+        function connectWebSocket() {
+            // 根据当前网页URL自动判断WebSocket地址
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket连接已建立');
+                reconnectAttempts = 0;
+                showUpdateStatus('已连接到服务器');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const newData = JSON.parse(event.data);
+                    // 更新本地数据
+                    Object.assign(playerData, newData);
+                    localStorage.setItem('playerData', JSON.stringify(playerData));
+                    
+                    // 刷新显示
+                    const activeFilter = document.querySelector('.filter-btn.active').dataset.island;
+                    displayPlayers(activeFilter);
+                    
+                    showUpdateStatus('数据已更新');
+                } catch (error) {
+                    console.error('数据更新失败:', error);
+                    showUpdateStatus('数据更新失败');
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket连接已断开');
+                // 尝试重连
+                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    reconnectAttempts++;
+                    setTimeout(() => {
+                        showUpdateStatus('正在重新连接...');
+                        connectWebSocket();
+                    }, 3000 * reconnectAttempts); // 递增重连延迟
+                } else {
+                    showUpdateStatus('连接失败，请刷新页面');
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket错误:', error);
+                showUpdateStatus('连接出错');
+            };
+        }
+
+        // 添加定期检查更新的功能
+        function checkForUpdates() {
+            if (!navigator.onLine) {
+                showUpdateStatus('离线模式');
+                return;
+            }
+
+            fetch('/api/version')
+                .then(response => response.json())
+                .then(data => {
+                    const currentVersion = localStorage.getItem('dataVersion');
+                    if (data.version !== currentVersion) {
+                        showUpdateStatus('发现新数据，正在更新...');
+                        // 获取新数据
+                        return fetch('/api/data');
+                    }
+                })
+                .then(response => response?.json())
+                .then(newData => {
+                    if (newData) {
+                        Object.assign(playerData, newData.data);
+                        localStorage.setItem('playerData', JSON.stringify(playerData));
+                        localStorage.setItem('dataVersion', newData.version);
+                        
+                        // 刷新显示
+                        const activeFilter = document.querySelector('.filter-btn.active').dataset.island;
+                        displayPlayers(activeFilter);
+                        
+                        showUpdateStatus('数据已更新');
+                    }
+                })
+                .catch(error => {
+                    console.error('更新检查失败:', error);
+                });
+        }
+
+        // 页面加载时连接WebSocket
+        connectWebSocket();
+
+        // 定期检查更新（每5分钟）
+        setInterval(checkForUpdates, 5 * 60 * 1000);
+
+        // 添加网络状态监听
+        window.addEventListener('online', () => {
+            showUpdateStatus('网络已连接');
+            connectWebSocket();
+            checkForUpdates();
+        });
+
+        window.addEventListener('offline', () => {
+            showUpdateStatus('已切换到离线模式');
+        });
+
+        // 页面激活时检查更新
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                checkForUpdates();
+            }
+        });
+    </script>
+</body>
+</html> 
