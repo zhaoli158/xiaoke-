@@ -459,11 +459,21 @@
 
         const searchInput = document.getElementById('searchInput');
         const result = document.getElementById('result');
+        const updateStatus = document.getElementById('updateStatus');
 
         // 添加筛选功能
         const filterBtns = document.querySelectorAll('.filter-btn');
         const playerList = document.getElementById('playerList');
 
+        function showUpdateStatus(message) {
+            updateStatus.textContent = message;
+            updateStatus.style.display = 'block';
+            setTimeout(() => {
+                updateStatus.style.display = 'none';
+            }, 3000);
+        }
+
+        // 显示玩家列表
         function displayPlayers(filter = 'all') {
             playerList.innerHTML = '';
             
@@ -486,22 +496,19 @@
         // 筛选按钮点击事件
         filterBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                // 更新按钮状态
                 filterBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 
-                // 显示筛选后的玩家
                 const filter = btn.dataset.island;
                 displayPlayers(filter);
             });
         });
 
-        // 修改搜索功能，使其能够搜索成员所在岛
+        // 搜索功能
         searchInput.addEventListener('input', function() {
             const searchValue = this.value.trim().toLowerCase();
             result.style.display = 'block';
             
-            // 当搜索框有内容时隐藏玩家列表，否则显示
             playerList.style.display = searchValue ? 'none' : 'grid';
             
             if (searchValue === '') {
@@ -510,7 +517,6 @@
                 return;
             }
 
-            // 查找匹配的玩家
             const matchedPlayers = Object.entries(playerData).filter(([name]) => 
                 name.toLowerCase().includes(searchValue)
             );
@@ -527,19 +533,15 @@
             }
         });
 
-        // 添加深色模式切换逻辑
+        // 深色模式切换
         const themeSwitch = document.getElementById('themeSwitch');
         const html = document.documentElement;
         
-        // 检查本地存储中的主题设置
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) {
             html.className = savedTheme;
-        } else {
-            // 检查系统主题偏好
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                html.className = 'dark-mode';
-            }
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            html.className = 'dark-mode';
         }
 
         themeSwitch.addEventListener('click', function() {
@@ -552,62 +554,12 @@
             }
         });
 
-        // 监听系统主题变化
-        if (window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-                if (!localStorage.getItem('theme')) {
-                    html.className = e.matches ? 'dark-mode' : 'light-mode';
-                }
-            });
-        }
-
-        // 添加移动端优化代码
-        function initMobileOptimizations() {
-            // 防止iOS设备上的双击缩放
-            let lastTouchEnd = 0;
-            document.addEventListener('touchend', function(event) {
-                const now = Date.now();
-                if (now - lastTouchEnd <= 300) {
-                    event.preventDefault();
-                }
-                lastTouchEnd = now;
-            }, false);
-
-            // 修复iOS设备上的点击延迟
-            document.addEventListener('touchstart', function() {}, false);
-
-            // 优化移动端搜索体验
-            searchInput.addEventListener('focus', function() {
-                // 滚动到搜索框位置
-                setTimeout(() => {
-                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            });
-        }
-
-        // 初始化移动端优化
-        initMobileOptimizations();
-
-        // 注册 Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful');
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
-        }
-
-        // 添加安装提示
+        // PWA 安装提示
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             
-            // 可以在这里添加自定义的安装提示UI
             if (!localStorage.getItem('appInstalled')) {
                 const installBanner = document.createElement('div');
                 installBanner.style.cssText = `
@@ -638,167 +590,6 @@
                 });
                 
                 document.body.appendChild(installBanner);
-            }
-        });
-
-        // 在 playerData 声明后添加以下代码
-        const updateStatus = document.getElementById('updateStatus');
-        let ws = null;
-        let reconnectAttempts = 0;
-        const MAX_RECONNECT_ATTEMPTS = 5;
-
-        function showUpdateStatus(message) {
-            updateStatus.textContent = message;
-            updateStatus.style.display = 'block';
-            
-            // 如果是错误消息，延长显示时间
-            const isError = message.includes('失败') || message.includes('错误');
-            setTimeout(() => {
-                updateStatus.style.display = 'none';
-            }, isError ? 5000 : 3000);
-        }
-
-        function connectWebSocket() {
-            // 如果网络离线，不尝试连接
-            if (!navigator.onLine) {
-                showUpdateStatus('当前处于离线模式');
-                return;
-            }
-
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
-            
-            try {
-                ws = new WebSocket(wsUrl);
-
-                ws.onopen = () => {
-                    console.log('WebSocket连接已建立');
-                    reconnectAttempts = 0;
-                    showUpdateStatus('已连接到服务器');
-                };
-
-                ws.onmessage = (event) => {
-                    try {
-                        const newData = JSON.parse(event.data);
-                        updatePlayerData(newData);
-                    } catch (error) {
-                        console.error('数据更新失败:', error);
-                    }
-                };
-
-                ws.onclose = () => {
-                    if (!navigator.onLine) {
-                        showUpdateStatus('网络已断开，使用本地数据');
-                        return;
-                    }
-
-                    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                        reconnectAttempts++;
-                        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-                        setTimeout(() => {
-                            showUpdateStatus('正在重新连接...');
-                            connectWebSocket();
-                        }, delay);
-                    } else {
-                        showUpdateStatus('连接失败，使用本地数据');
-                    }
-                };
-
-                ws.onerror = () => {
-                    showUpdateStatus('连接出错，使用本地数据');
-                };
-            } catch (error) {
-                console.error('WebSocket连接失败:', error);
-                showUpdateStatus('连接失败，使用本地数据');
-            }
-        }
-
-        // 添加数据更新函数
-        function updatePlayerData(newData) {
-            try {
-                Object.assign(playerData, newData);
-                localStorage.setItem('playerData', JSON.stringify(playerData));
-                localStorage.setItem('lastUpdateTime', Date.now());
-                
-                const activeFilter = document.querySelector('.filter-btn.active').dataset.island;
-                displayPlayers(activeFilter);
-                
-                showUpdateStatus('数据已更新');
-            } catch (error) {
-                console.error('数据更新失败:', error);
-                showUpdateStatus('更新失败，使用本地数据');
-            }
-        }
-
-        // 修改检查更新函数
-        function checkForUpdates() {
-            if (!navigator.onLine) {
-                const lastUpdate = localStorage.getItem('lastUpdateTime');
-                const timeAgo = lastUpdate ? Math.floor((Date.now() - lastUpdate) / 60000) : null;
-                
-                showUpdateStatus(
-                    timeAgo 
-                        ? `离线模式（${timeAgo}分钟前更新）` 
-                        : '离线模式'
-                );
-                return;
-            }
-
-            fetch('/api/version')
-                .then(response => {
-                    if (!response.ok) throw new Error('网络请求失败');
-                    return response.json();
-                })
-                .then(data => {
-                    const currentVersion = localStorage.getItem('dataVersion');
-                    if (data.version !== currentVersion) {
-                        return fetch('/api/data');
-                    }
-                })
-                .then(response => response?.json())
-                .then(newData => {
-                    if (newData) {
-                        updatePlayerData(newData.data);
-                        localStorage.setItem('dataVersion', newData.version);
-                    }
-                })
-                .catch(error => {
-                    console.error('更新检查失败:', error);
-                    showUpdateStatus('更新失败，使用本地数据');
-                });
-        }
-
-        // 添加网络状态监听
-        window.addEventListener('online', () => {
-            showUpdateStatus('网络已连接，正在同步...');
-            connectWebSocket();
-            checkForUpdates();
-        });
-
-        window.addEventListener('offline', () => {
-            showUpdateStatus('网络已断开，使用本地数据');
-            if (ws) ws.close();
-        });
-
-        // 页面加载时初始化
-        if (navigator.onLine) {
-            connectWebSocket();
-            checkForUpdates();
-        } else {
-            showUpdateStatus('离线模式');
-        }
-
-        // 定期检查更新（网络正常时）
-        setInterval(() => {
-            if (navigator.onLine) {
-                checkForUpdates();
-            }
-        }, 5 * 60 * 1000);
-
-        // 页面激活时检查更新
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && navigator.onLine) {
-                checkForUpdates();
             }
         });
     </script>
